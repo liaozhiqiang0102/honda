@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!DOCTYPE hibernate-configuration PUBLIC
+    "-//Hibernate/Hibernate Configuration DTD//EN"
+    "http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd">
+<hibernate-configuration>
+  <session-factory>
+    <property name="connection.url">jdbc:mysql://111.231.85.247:3306/honda_om</property>
+    <property name="connection.driver_class">com.mysql.jdbc.Driver</property>
+    <mapping class="com.sv.honda.entity.ProductEntity"/>
+    <mapping class="com.sv.honda.entity.SystemLogEntity"/>
+    <mapping class="com.sv.honda.entity.RoleEntity"/>
+    <mapping class="com.sv.honda.entity.UserEntity"/>
+    <!--<mapping class="com.sv.triangle.pojo.UserEntity"/>-->
+
+    <!-- DB schema will be updated if needed -->
+    <!-- <property name="hbm2ddl.auto">update</property> -->
+  </session-factory>
+</hibernate-configuration>

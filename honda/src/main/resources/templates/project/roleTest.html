@@ -1,0 +1,191 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorator="templates/layout">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta charset="utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>RoleMgr</title>
+    <!--<base href="https://demos.telerik.com/kendo-ui/grid/index">-->
+    <style>html {
+        font-size: 14px;
+        font-family: Arial, Helvetica, sans-serif;
+    }
+
+
+    </style>
+    <title></title>
+    <link rel="stylesheet" href="/styles/kendo/kendo.common-material.min.css"/>
+    <link rel="stylesheet" href="/styles/kendo/kendo.material.min.css"/>
+    <link rel="stylesheet" href="/styles/kendo/kendo.material.mobile.min.css"/>
+</head>
+<body>
+
+
+<div id="example" layout:fragment="content1">
+    <div id="roleBeforeGrid">
+        <table border="1">
+            <tr>
+                <th>选择需要生成的列：</th>
+                <th><select id="roleSelectFields" name="roleSelectFields"></select></th>
+            </tr>
+            <tr>
+                <td>输入每页显示条数：</td>
+                <td><input id="rolePageSize" type="text"/></td>
+            </tr>
+            <tr>
+                <td>输入列表高度：</td>
+                <td><input id="roleHeight" type="text"/></td>
+            </tr>
+            <tr>
+                <td>是否支持排序：</td>
+                <td><input id="roleSortable" type="text" placeholder="true"/></td>
+            </tr>
+            <tr>
+                <td>是否支持过滤：</td>
+                <td><input id="roleFilterable" type="text" placeholder="true"/></td>
+            </tr>
+            <tr>
+                <td>编辑框名字：</td>
+                <td><input id="roleWindowTitle" type="text" value="角色管理"/></td>
+            </tr>
+        </table>
+
+
+        <button id="roleGenerateGrid" class="k-primary" onclick="roleGenerateGrid()">生成数据表格</button>
+    </div>
+    <br/>
+    <div id="grid"></div>
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        $(function () {
+
+            selectedRoleFields(); //查询选择的列
+        });
+
+
+        //查询已选择的列
+        function selectedRoleFields() {
+            $.ajax({
+                type: "post",
+                async: false,
+                url: "/roleController/roleFieldsList",
+                dataType: "json",
+                success: function (data) {
+                    $("#roleSelectFields")
+                        .kendoMultiSelect({
+                            autoBind: false,
+                            dataTextField: "name",
+                            dataValueField: "id",
+                            width: 200,
+                            dataSource: {
+                                serverFiltering: true,
+                                transport: {
+                                    read: {
+                                        type: "post",
+                                        url: "/roleController/roleFieldsList",
+                                        dataType: "json",
+                                        contentType: "application/json",
+                                        headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+                                    }
+                                }
+                            },
+                            value: data
+                        });
+                }
+            });
+        }
+
+
+        //（请求后触发）点击按钮更新表格,只适用于单条修改，直接修改数据库，不适用于批量修改
+        function onRequestEnd(e) {
+            console.log("read");
+            if (e.type == "create") {
+                console.log("create");
+                e.sender.read();       //调用read方法 重新读取表格
+            }
+            else if (e.type == "update") {
+                console.log("update");
+                e.sender.read();
+            }
+            else if (e.type == "destroy") {
+                console.log("destroy");
+                e.sender.read();
+            }
+
+            //更新成功后弹出提示信息
+            var response = e.response;
+            if (response) {
+                var type = e.type;
+                if (type != 'read') {
+                    var status = response.status;
+                    if (status == 200) {
+                        this.read();
+                    }
+                    else {
+                        alert(response.msg);
+                    }
+                }
+            }
+            // else{
+            //     alert("服务器异常，请重试！");
+            // }
+        }
+
+        //编辑时boolean类型复选框样式修改
+        // function customBoolEditor(container, options) {
+        //     var guid = kendo.guid();
+        //     $('<input class="k-checkbox" id="' + guid + '" type="checkbox" name="userState" data-type="boolean" data-bind="checked:userState">').appendTo(container);
+        //     $('<label class="k-checkbox-label" for="' + guid + '">&#8203;</label>').appendTo(container);
+        // }
+
+        //生成已选择的列
+        function roleGenerateGrid() {
+            var roleFieldsValue = $("#roleSelectFields").val();
+            var rolePageSize = $("#rolePageSize").val();
+            var roleHeight = $("#roleHeight").val();
+            var roleSortable = $("#roleSortable").val();
+            var roleFilterable = $("#roleFilterable").val();
+            var roleWindowTitle = $("#roleWindowTitle").val();
+
+            if (roleFieldsValue.length == 0) {
+                alert("请选择需要显示的列！");
+            } else {
+                roleInitGrid(roleFieldsValue, rolePageSize, roleHeight, roleSortable, roleFilterable, roleWindowTitle);
+            }
+        }
+
+        //初始化表格
+        function roleInitGrid(roleFieldsValue, rolePageSize, roleHeight, roleSortable, roleFilterable, roleWindowTitle) {
+
+            $.ajax({
+                type: "post",
+                async: false,
+                url: "/roleController/roleList3",
+                data: {
+                    "fieldValues": roleFieldsValue, "userPageSize": rolePageSize, "userHeight": roleHeight,
+                    "sortable": roleSortable, "filterable": roleFilterable, "windowTitle": roleWindowTitle
+                },
+                dataType: "json",
+                contentType: "application/json",
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                success: function (data) {
+                    eval(data.msg);
+                    $("#roleBeforeGrid").hide();
+                }
+            });
+        }
+        /*]]>*/
+    </script>
+
+    <!-- jQuery UI 1.11.4 --><!-- jquery必须在bootstrap之前引用 -->
+    <!--<script src="/styles/AdminLTE/bower_components/jquery-ui/jquery-ui.min.js"></script>-->
+    <script src="/js/kendo/kendo.all.min.js"></script>
+    <script src="/js/kendo/cultures/kendo.culture.zh-CN.min.js"></script>
+    <script src="/js/kendo/messages/kendo.messages.zh-CN.min.js"></script>
+</div>
+
+</body>
+</html>

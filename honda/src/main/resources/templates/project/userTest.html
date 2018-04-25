@@ -1,0 +1,182 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="fragments/header::header-css">
+    <title>UserMgr</title>
+</head>
+<body class="hold-transition skin-blue sidebar-mini">
+<div th:replace="fragments/header::header-body"/>
+
+<div class="content-wrapper">
+    <section th:replace="fragments/sitemap"/>
+
+    <div class="container-fluid">
+        <div id="beforeGrid">
+            <table border="1">
+                <tr>
+                    <th>选择需要生成的列：</th>
+                    <th><select id="userSelectFields" name="userSelectFields"></select></th>
+                </tr>
+                <tr>
+                    <td>输入每页显示条数：</td>
+                    <td><input id="userPageSize" type="text" /></td>
+                </tr>
+                <tr>
+                    <td>输入列表高度：</td>
+                    <td><input id="userHeight" type="text"/></td>
+                </tr>
+                <tr>
+                    <td>是否支持排序：</td>
+                    <td><input id="sortable" type="text" placeholder="true"/></td>
+                </tr>
+                <tr>
+                    <td>是否支持过滤：</td>
+                    <td><input id="filterable" type="text" placeholder="true"/></td>
+                </tr>
+                <tr>
+                    <td>编辑框名字：</td>
+                    <td><input id="windowTitle" type="text" value="用户管理" /></td>
+                </tr>
+            </table>
+
+
+
+
+
+            <button id="generateGrid" class="k-primary" onclick="generateGrid()">生成数据表格</button>
+        </div>
+        <br />
+        <div id="grid"></div>
+        <script th:inline="javascript">
+            /*<![CDATA[*/
+            $(function () {
+
+                selectedFields(); //查询选择的列
+            });
+
+
+            //查询已选择的列
+            function selectedFields(){
+                $.ajax({
+                    type: "post",
+                    async: false,
+                    url: "./user/userFieldsList",
+                    dataType: "json",
+                    success: function (data) {
+                        $("#userSelectFields")
+                            .kendoMultiSelect({
+                                autoBind: false,
+                                dataTextField: "name",
+                                dataValueField: "id",
+                                width:200,
+                                dataSource: {
+                                    serverFiltering: true,
+                                    transport: {
+                                        read: {
+                                            type: "post",
+                                            url: "./user/userFieldsList",
+                                            dataType: "json",
+                                            contentType: "application/json",
+                                            headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+                                        }
+                                    }
+                                },
+                                value: data
+                            });
+                    }
+                });
+            }
+
+
+
+
+            //（请求后触发）点击按钮更新表格,只适用于单条修改，直接修改数据库，不适用于批量修改
+            function onRequestEnd(e) {
+                if (e.type == "create") {
+                    e.sender.read();       //调用read方法 重新读取表格
+                }
+                else if (e.type == "update") {
+                    e.sender.read();
+                }
+                else if (e.type == "destroy") {
+                    e.sender.read();
+                }
+
+                //更新成功后弹出提示信息
+                var response = e.response;
+                if (response) {
+                    var type = e.type;
+                    if (type != 'read') {
+                        var status = response.status;
+                        if (status == 200) {this.read();}
+                        else {
+                            alert(response.msg);
+                        }
+                    }
+                }
+                // else{
+                //     alert("服务器异常，请重试！");
+                // }
+            }
+
+            //编辑时boolean类型复选框样式修改
+            function customBoolEditor(container, options) {
+                var guid = kendo.guid();
+                $('<input class="k-checkbox" id="' + guid + '" type="checkbox" name="userState" data-type="boolean" data-bind="checked:userState">').appendTo(container);
+                $('<label class="k-checkbox-label" for="' + guid + '">&#8203;</label>').appendTo(container);
+            }
+
+            //生成已选择的列
+            function generateGrid(){
+                var fieldsValue = $("#userSelectFields").val();
+                var userPageSize = $("#userPageSize").val();
+                var userHeight = $("#userHeight").val();
+                var sortable = $("#sortable").val();
+                var filterable = $("#filterable").val();
+                var windowTitle = $("#windowTitle").val();
+
+                if(fieldsValue.length == 0){
+                    alert("请选择需要显示的列！");
+                }else{
+                    // initGrid(JSON.stringify(fieldsValue).replace(/\"/g, ""),userPageSize,userHeight,sortable,filterable);
+                    initGrid(fieldsValue,userPageSize,userHeight,sortable,filterable,windowTitle);
+                }
+            }
+
+            //初始化表格
+            function initGrid(fieldsValue,userPageSize,userHeight,sortable,filterable,windowTitle) {
+
+                $.ajax({
+                    type: "post",
+                    async: false,
+                    url: "./user/userList3",
+                    data: {
+                        "fieldValues": fieldsValue, "userPageSize": userPageSize, "userHeight": userHeight,
+                        "sortable": sortable, "filterable": filterable, "windowTitle": windowTitle
+                    },
+                    dataType: "json",
+                    contentType: "application/json",
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    success: function (response) {
+                        // var newData = data.msg.replace("{\"field\":\"passWord\"},{\"field\":\"userName\"},{\"editor\":\"customBoolEditor\",\"field\":\"userState\"},{\"field\":\"address\"},{\"field\":\"reviseDate\",\"format\":\"{0:yyyy-MM-dd}\"},{\"field\":\"roleList\"}",
+                        //     "{\"field\":\"passWord\",title:\"密码\"},{\"field\":\"userName\",title:\"用户名\"},{\"editor\":customBoolEditor,\"field\":\"userState\",title:\"使用状态\"},{\"field\":\"address\",title:\"地址\"},{\"field\":\"reviseDate\",\"format\":\"{0:yyyy-MM-dd}\",title:\"修改日期\"},{\"field\":\"roleList\",title:\"角色\"}");
+                        console.log(response.msg);
+                        eval(response.msg);
+                        $("#beforeGrid").hide();
+                    }
+                });
+            }
+            /*]]>*/
+        </script>
+
+        <!--<script type="text/x-kendo-template" id="reviseDate_template">-->
+        <!--#= kendo.toString(reviseDate, "yyyy-MM-dd") #-->
+        <!--</script>-->
+    </div>
+</div>
+<!-- /.container -->
+
+<footer th:replace="fragments/footer::footer"/>
+
+<aside th:replace="fragments/menu"/>
+</body>
+</html>
